@@ -1,6 +1,8 @@
 let moveCount = 0;
 let points = 0;
 let previousCard: number;
+let noClickCards: string[] = [];
+
 // ID for comparing cards
 let currentlySelectedCardValue: string;
 
@@ -12,11 +14,13 @@ const timer = document.querySelector<HTMLTimeElement>(".js-timer")
 const showPoints = document.querySelector<HTMLTitleElement>(".js-points")
 const moves = document.querySelector<HTMLDivElement>(".js-nav-moves")
 
+
 let intervalId: NodeJS.Timer;
 const initializeGame = () => {
     // ---General reset ---//
     const arrayOfCards: string[] = ["A", "A", "K", "K", "Q", "Q"];
     const cardCount = arrayOfCards.length;
+    noClickCards = [];
     moveCount = 0;
     points = 0;
     moves.style.color = ""
@@ -53,19 +57,38 @@ const initializeGame = () => {
     endButton.parentElement.style.display = "none";
     // ------------------ card shuffling ---------------- //
     for(let i=0; i<cardCount; i++){
-        cards[i].firstElementChild.innerHTML = "";
-        let randomCardIndex = Math.floor(Math.random()*arrayOfCards.length)
+        hideCard(i);
+        cards[i].style.pointerEvents = "auto";
+        let randomCardIndex = Math.floor(Math.random()*arrayOfCards.length);
         let randomCard = arrayOfCards[randomCardIndex];
         cards[i].setAttribute("id", randomCard)
         arrayOfCards.splice(randomCardIndex, 1)
-        // cards color reset
-        cards[i].style.backgroundColor = "";
-        cards[i].style.boxShadow = "";
+
     }
 }
 // ------- EVENT listeners for START and END buttons ----- //
 startButton.addEventListener("click", initializeGame);
 endButton.addEventListener("click", initializeGame);
+
+// function for choosing which card to show
+const showCard = (i: number) => {
+    if(cards[i].getAttribute("id") === "A"){
+        cards[i].classList.add("cards__ace")
+    }else if(cards[i].getAttribute("id") === "K"){
+        cards[i].classList.add("cards__king")
+    }else{
+        cards[i].classList.add("cards__queen")
+    }
+}
+const hideCard = (i: number) => {
+    if(cards[i].getAttribute("id") === "A"){
+        cards[i].classList.remove("cards__ace")
+    }else if(cards[i].getAttribute("id") === "K"){
+        cards[i].classList.remove("cards__king")
+    }else{
+        cards[i].classList.remove("cards__queen")
+    }
+}
 
 // ----- EVENT listener for card related events -------- //
 
@@ -76,37 +99,34 @@ const handleCardClick = (i: number) => {
     console.log(`This card : ${i}`)
     console.log(`Previous card : ${previousCard}`)
     // ---------------- Handle selecting the same card twice -------- //
-    if(cards[i] === cards[previousCard])return;
+    if(cards[i] === cards[previousCard] || noClickCards.includes(cards[i].getAttribute("id")))return;
     // ------------ Handle selecting the first card on each turn ------------- //
     if(moveCount % 2 === 0){
             previousCard = i;
             currentlySelectedCardValue = cards[i].getAttribute("id");
-            cards[i].firstElementChild.innerHTML = cards[i].getAttribute("id");
-            cards[i].style.backgroundColor = "#55555aac";
-            cards[i].style.boxShadow = "5px 5px 10px #646467";
+            showCard(i);
+            cards[i].style.pointerEvents = "none"
             moveCount += 1;
     // ------------ Handle selecting the second card on each turn ------------- //      
     // --- If cards 1 and 2 are not the same, show value and after timeout reset values to "" --- //  
     }
     else{
         if(cards[i].getAttribute("id") !== currentlySelectedCardValue){
-            cards[i].firstElementChild.innerHTML = cards[i].getAttribute("id");
-            cards[i].style.backgroundColor = "#55555aac";
-            cards[i].style.boxShadow = "5px 5px 10px #646467";
+            showCard(i);
             currentlySelectedCardValue = "";
             // Hack for not letting to click next card while timeout is in progress
             for(let i=0; i<cards.length; i++){
                 cards[i].style.pointerEvents = "none"
             }
             setTimeout(() => {
-                cards[i].firstElementChild.innerHTML = "";
-                cards[i].style.backgroundColor = "";
-                cards[i].style.boxShadow = "";
-                cards[previousCard].firstElementChild.innerHTML = "";
-                cards[previousCard].style.backgroundColor = "";
-                cards[previousCard].style.boxShadow = "";
+                hideCard(i);
+                hideCard(previousCard);
                 for(let i=0; i<cards.length; i++){
-                    cards[i].style.pointerEvents = "auto"
+                    if(noClickCards.includes(cards[i].getAttribute("id"))){
+                        cards[i].style.pointerEvents = "none"
+                    }else{
+                        cards[i].style.pointerEvents = "auto"
+                    }
                 }
                 //previousCard has previous value and 'same card selecting' handler works incorrectly without reset
                 previousCard = 99;
@@ -114,11 +134,12 @@ const handleCardClick = (i: number) => {
             // ------ If cards 1 and 2 are the same, show value and add point "" ------- //   
         }
         else{
-            cards[i].firstElementChild.innerHTML = cards[i].getAttribute("id");
-            cards[i].style.backgroundColor = "#55555aac";
-            cards[i].style.boxShadow = "5px 5px 10px #646467";
+            showCard(i);
             points += 1;
             showPoints.innerHTML = `${points}/3 points`;
+            noClickCards.push(cards[i].getAttribute("id"))
+            cards[i].style.pointerEvents = "none"
+            cards[previousCard].style.pointerEvents = "none"
         }
         moveCount += 1;
     }
